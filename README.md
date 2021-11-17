@@ -39,3 +39,14 @@ usage :
 from termio import rect as rect<br/>
 rect(5,4,20,5,"")<br/>
 
+## fillrect
+draw a rectangle with char (if empty char , make rectangle with  + - and  )
+
+syntax : fillrect(x,y,width,height,char,fillchar)
+
+draw a filled rectangle from x,y with width chars wide and height line down and filled with a char
+
+usage : 
+
+from termio import fillrect as fillrect<br/>
+rect(5,4,20,5,"#","O")<br/>
