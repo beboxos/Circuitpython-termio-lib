@@ -26,3 +26,16 @@ usage :
 
 from termio import printat as printat<br/>
 printat(5,10,"Hello World!")<br/>
+
+## rect
+draw a rectangle with char (if empty char , make rectangle with  + - and  )
+
+syntax : rect(x,y,width,height,char)
+
+draw a rectangle from x,y with width chars wide and height line down
+
+usage : 
+
+from termio import rect as rect<br/>
+rect(5,4,20,5,"")<br/>
+
