@@ -49,4 +49,4 @@ draw a filled rectangle from x,y with width chars wide and height line down and 
 usage : 
 
 from termio import fillrect as fillrect<br/>
-rect(5,4,20,5,"#","O")<br/>
+fillrect(5,4,20,5,"#","O")<br/>
