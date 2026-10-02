@@ -9,7 +9,9 @@ serial console (screen, minicom, Mu, Thonny...).
 Coordinates are 0-based: (0, 0) is the top left corner of the screen.
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
+
+import sys
 
 ESC = "\x1b["
 
@@ -45,6 +47,18 @@ BOX_ASCII = ("+", "+", "+", "+", "-", "|")
 BOX_SINGLE = ("┌", "┐", "└", "┘", "─", "│")
 BOX_DOUBLE = ("╔", "╗", "╚", "╝", "═", "║")
 BOX_ROUND = ("╭", "╮", "╰", "╯", "─", "│")
+
+# Keys returned by getkey()
+UP = "up"
+DOWN = "down"
+LEFT = "left"
+RIGHT = "right"
+ENTER = "enter"
+ESCAPE = "esc"
+BACKSPACE = "backspace"
+_KEYS = {"A": UP, "B": DOWN, "C": RIGHT, "D": LEFT}
+
+SPINNER = "|/-\\"
 
 # Offset added to every coordinate (see set_offset())
 _offset_x = 0
@@ -112,6 +126,23 @@ def clear_line(y=None):
         _write(_goto(0, y) + ESC + "2K")
 
 
+def clear_rect(x, y, width, height):
+    """Blank a rectangular area."""
+    if width > 0:
+        _write("".join(_goto(x, y + n) + " " * width for n in range(height)))
+
+
+def scroll_region(top=None, bottom=None):
+    """Only scroll lines top..bottom (inclusive), e.g. to keep a fixed header.
+
+    Call without arguments to scroll the whole screen again.
+    """
+    if top is None:
+        _write(ESC + "r")
+    else:
+        _write("{}{};{}r".format(ESC, top + _offset_y + 1, bottom + _offset_y + 1))
+
+
 def clear_eol():
     """Clear from the cursor to the end of the line."""
     _write(ESC + "K")
@@ -158,6 +189,39 @@ def center(y, text, width, fg=None, bg=None, style=None):
     """Print text centered on line y for a screen `width` chars wide."""
     text = str(text)
     printat(max(0, (width - len(text)) // 2), y, text, fg, bg, style)
+
+
+def wrap(text, width):
+    """Split text into lines of at most `width` chars, breaking on spaces."""
+    lines = []
+    for paragraph in str(text).split("\n"):
+        line = ""
+        for word in paragraph.split(" "):
+            while len(word) > width:
+                if line:
+                    lines.append(line)
+                    line = ""
+                lines.append(word[:width])
+                word = word[width:]
+            if not line:
+                line = word
+            elif len(line) + 1 + len(word) <= width:
+                line += " " + word
+            else:
+                lines.append(line)
+                line = word
+        lines.append(line)
+    return lines
+
+
+def textat(x, y, text, width, height=None, fg=None, bg=None, style=None):
+    """Print text word-wrapped in a `width` wide column, return lines used."""
+    lines = wrap(text, width)
+    if height is not None:
+        lines = lines[:height]
+    for n, line in enumerate(lines):
+        printat(x, y + n, line, fg, bg, style)
+    return len(lines)
 
 
 # --------------------------------------------------------------- drawing ---
@@ -242,3 +306,116 @@ def progress(x, y, width, value, maximum=100, fg=None, bg=None, full="#", empty=
     done = int(inner * ratio + 0.5)
     bar = "[" + _styled(full * done, fg, bg, None) + empty * (inner - done) + "]"
     _write(_goto(x, y) + bar + " {:3d}%".format(int(ratio * 100 + 0.5)))
+
+
+def textbox(x, y, width, height, text, title="", char=BOX_ASCII, fg=None, bg=None):
+    """Draw a window and fill it with word-wrapped text (cut if too long)."""
+    window(x, y, width, height, title, char, fg, bg)
+    if width > 2 and height > 2:
+        textat(x + 1, y + 1, text, width - 2, height - 2)
+
+
+def spinner(x, y, step, fg=None):
+    """Draw one frame of a | / - \\ spinner; call again with step + 1."""
+    printat(x, y, SPINNER[step % len(SPINNER)], fg)
+
+
+def table(x, y, rows, widths=None, header=True, fg=None):
+    """Draw rows (lists of values) as an ASCII table, return its height.
+
+    widths defaults to the widest value of each column.
+    With header=True a separator is drawn under the first row.
+    """
+    rows = [[str(cell) for cell in row] for row in rows]
+    if not rows:
+        return 0
+    if widths is None:
+        widths = [0] * max(len(row) for row in rows)
+        for row in rows:
+            for i, cell in enumerate(row):
+                widths[i] = max(widths[i], len(cell))
+    sep = _styled("+" + "+".join("-" * (w + 2) for w in widths) + "+", fg, None, None)
+    bar = _styled("|", fg, None, None)
+    out = [sep]
+    for n, row in enumerate(rows):
+        cells = []
+        for i, w in enumerate(widths):
+            cell = row[i] if i < len(row) else ""
+            cells.append(" " + cell[:w] + " " * (w - len(cell[:w])) + " ")
+        out.append(bar + bar.join(cells) + bar)
+        if n == 0 and header and len(rows) > 1:
+            out.append(sep)
+    out.append(sep)
+    _write("".join(_goto(x, y + n) + line for n, line in enumerate(out)))
+    return len(out)
+
+
+# ----------------------------------------------------------------- input ---
+
+def _available():
+    try:
+        import supervisor
+    except ImportError:
+        return True
+    return supervisor.runtime.serial_bytes_available
+
+
+def getkey(blocking=True):
+    """Read one key from the serial console.
+
+    Returns the char typed, or UP, DOWN, LEFT, RIGHT, ENTER, ESCAPE,
+    BACKSPACE. With blocking=False, returns None when no key is waiting.
+    Only works over USB serial (not with a keyboard attached to the board).
+    """
+    if not blocking and not _available():
+        return None
+    c = sys.stdin.read(1)
+    if not c:
+        return None
+    if c == "\x1b":
+        if not _available():
+            return ESCAPE
+        c = sys.stdin.read(1)
+        if c in "[O":
+            c = sys.stdin.read(1)
+            return _KEYS.get(c, c)
+        return ESCAPE
+    if c in "\r\n":
+        return ENTER
+    if c in "\x08\x7f":
+        return BACKSPACE
+    return c
+
+
+def menu(x, y, items, selected=0, fg=None, bg=None):
+    """Show a vertical menu driven by the arrow keys.
+
+    Returns the index of the item chosen with Enter, or None on Escape / q.
+    """
+    if not items:
+        return None
+    width = max(len(str(item)) for item in items) + 2
+    selected = min(max(selected, 0), len(items) - 1)
+    cursor(False)
+    try:
+        while True:
+            for n, item in enumerate(items):
+                text = " " + str(item) + " " * (width - 1 - len(str(item)))
+                printat(x, y + n, text, fg, bg, REVERSE if n == selected else None)
+            key = getkey()
+            if key == UP:
+                selected = (selected - 1) % len(items)
+            elif key == DOWN:
+                selected = (selected + 1) % len(items)
+            elif key == ENTER:
+                return selected
+            elif key in (ESCAPE, "q"):
+                return None
+    finally:
+        cursor(True)
+
+
+def input_at(x, y, prompt="", fg=None, bg=None, style=None):
+    """Print prompt at x, y and return the line typed by the user."""
+    printat(x, y, prompt, fg, bg, style)
+    return input()
