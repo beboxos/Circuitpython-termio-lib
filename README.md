@@ -1,15 +1,22 @@
 # Circuitpython-termio-lib
 
+[![tests](https://github.com/beboxos/Circuitpython-termio-lib/actions/workflows/tests.yml/badge.svg)](https://github.com/beboxos/Circuitpython-termio-lib/actions/workflows/tests.yml)
+[![release](https://img.shields.io/github/v/release/beboxos/Circuitpython-termio-lib)](https://github.com/beboxos/Circuitpython-termio-lib/releases/latest)
+
 A tiny text-UI library for the CircuitPython REPL: position text, draw boxes,
-windows and progress bars, with colors, on any ANSI/VT100 terminal — the board
+windows, tables and progress bars, with colors, and build keyboard menus, on any ANSI/VT100 terminal — the board
 display (Wio Terminal, PyPortal, ...) or a serial console (Mu, Thonny, screen, minicom...).
 
 ![img](images/img1.png)
 
 ## Installation
 
-Copy `code/lib/termio.py` into the `lib` folder of your `CIRCUITPY` drive,
-then try `code/demo.py` (rename it `code.py`).
+1. Download `termio.py` from the [latest release](https://github.com/beboxos/Circuitpython-termio-lib/releases/latest)
+   (or take `code/lib/termio.py` from this repository).
+2. Copy it into the `lib` folder of your `CIRCUITPY` drive.
+3. Try `code/demo.py` (copy it as `code.py`).
+
+Check the installed version with `termio.__version__`.
 
 ```python
 import termio
@@ -132,6 +139,14 @@ The library runs on desktop Python too:
 ```sh
 python -m unittest discover tests
 ```
+
+## Releasing
+
+1. Bump `__version__` in `code/lib/termio.py` and add a section to `CHANGELOG.md`.
+2. Merge to `main`, then create a `vX.Y.Z` tag on it (from the GitHub *Releases* page
+   or `git tag vX.Y.Z && git push origin vX.Y.Z`).
+3. The `release` workflow runs the tests, checks the version matches the tag and
+   publishes the release with `termio.py` attached.
 
 ## Upgrading from 1.x
 
