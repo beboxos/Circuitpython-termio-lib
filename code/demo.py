@@ -1,21 +1,36 @@
-from termio import cls as cls
-from termio import printat as printat
-from termio import rect as rect
-from termio import fillrect as fillrect
+"""termio demo - copy code/lib/termio.py to the lib folder of your board"""
 import time
-# clear screen
+import termio
+from termio import cls, printat, rect, fillrect, window, progress, center
+
+WIDTH = 50  # screen width in chars (50 on a Wio Terminal)
+
+termio.cursor(False)
 cls()
-# set cursor at x=5 and y=4 (from top left of screen) and write TEST
-printat(5,4,"TEST")
+
+# plain text, then colored text
+printat(5, 1, "TEST")
+printat(12, 1, "colors!", fg=termio.YELLOW, style=termio.BOLD)
 time.sleep(1)
-# Draw a rectangle from x=2, y=2 with 10 chars wide and 5 lines down no specified char for line
-rect(2,2,10,5,"")
-# Draw a filled rectangle from 15,10 with 20 char wide and 6 lines down lines are made with # and filled with _
-fillrect(15,10,20,6,"#","_")
-# Draw a filled rectangke with no char specified for line and filled with .
-fillrect(30,6,10,4,"",".")
-# set cursor at start of line 17 and show End
-printat(0,17,"End")
+
+# rectangle outline using + - |
+rect(2, 3, 10, 5)
+# rectangle outline made with # and filled with _
+fillrect(15, 3, 20, 6, "#", "_")
+# filled rectangle with default border, in cyan
+fillrect(37, 3, 10, 4, "", ".", fg=termio.CYAN)
+
+# window with a title
+window(2, 10, 30, 4, "Status", fg=termio.GREEN)
+printat(4, 11, "All systems online")
+
+# progress bar
+for i in range(0, 101, 5):
+    progress(2, 15, 30, i, fg=termio.GREEN)
+    time.sleep(0.1)
+
+center(17, "End", WIDTH, fg=termio.MAGENTA)
+termio.cursor(True)
 print()
 time.sleep(10)
 cls()
