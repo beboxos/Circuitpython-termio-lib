@@ -57,6 +57,8 @@ termio.reset()
 | `cursor(visible)` | show / hide the cursor |
 | `save_cursor()` / `restore_cursor()` | remember / go back to the cursor position |
 | `set_offset(x, y)` | shift all drawings |
+| `clear_rect(x, y, width, height)` | blank an area |
+| `scroll_region(top, bottom)` | only scroll lines `top..bottom` (no args: whole screen) |
 
 ### Text
 
@@ -64,6 +66,8 @@ termio.reset()
 |---|---|
 | `printat(x, y, text, fg, bg, style)` | print `text` at `x, y` |
 | `center(y, text, width, ...)` | center `text` on line `y` of a `width` wide screen |
+| `wrap(text, width)` | split `text` into a list of lines, breaking on spaces |
+| `textat(x, y, text, width, height=None)` | print word-wrapped text in a column |
 
 ### Drawing
 
@@ -75,6 +79,22 @@ termio.reset()
 | `fillrect(x, y, width, height, char="", fillchar=" ")` | filled rectangle |
 | `window(x, y, width, height, title="")` | box with a title in its top border |
 | `progress(x, y, width, value, maximum=100)` | `[#####.....]  50%` |
+| `textbox(x, y, width, height, text, title="")` | window filled with word-wrapped text |
+| `table(x, y, rows, widths=None, header=True)` | ASCII table, returns its height |
+| `spinner(x, y, step)` | one frame of a `\| / - \\` spinner |
+
+### Keyboard (USB serial console)
+
+| Function | Description |
+|---|---|
+| `getkey(blocking=True)` | one key: a char or `UP DOWN LEFT RIGHT ENTER ESCAPE BACKSPACE`; `None` if non-blocking and nothing typed |
+| `menu(x, y, items, selected=0)` | arrow-key menu, returns the chosen index or `None` (Escape / `q`) |
+| `input_at(x, y, prompt="")` | print a prompt at `x, y` and read a line |
+
+```python
+choice = termio.menu(4, 3, ["Start", "Settings", "Quit"])
+termio.table(0, 10, [["sensor", "value"], ["temp", 21.5], ["hum", "40%"]])
+```
 
 `char` for `rect` / `fillrect` / `window` can be:
 

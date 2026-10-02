@@ -34,3 +34,12 @@ termio.cursor(True)
 print()
 time.sleep(10)
 cls()
+
+# --- 2.1: keyboard menu (type in the serial console), text box, table ---
+choice = termio.menu(2, 2, ["Show table", "Show text", "Quit"])
+cls()
+if choice == 0:
+    termio.table(2, 2, [["sensor", "value"], ["temp", "21.5C"], ["hum", "40%"]])
+elif choice == 1:
+    termio.textbox(2, 2, 30, 6, "termio draws text, boxes and menus on the REPL.", "Info")
+print()

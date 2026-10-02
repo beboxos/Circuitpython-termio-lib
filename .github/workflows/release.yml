@@ -1,0 +1,25 @@
+name: release
+
+# Push a tag like v2.1.0 to publish a GitHub release with termio.py attached.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: python -m unittest discover -v tests
+      - name: Check version matches tag
+        run: grep -q "__version__ = \"${GITHUB_REF_NAME#v}\"" code/lib/termio.py
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: code/lib/termio.py
+          body_path: CHANGELOG.md

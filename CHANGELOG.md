@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.0
+
+### Added
+- Keyboard input over USB serial: `getkey()` (arrows, Enter, Escape, Backspace, non-blocking mode)
+  and `input_at()`.
+- `menu()`: vertical menu driven by the arrow keys.
+- Text: `wrap()`, `textat()` (word-wrapped column), `textbox()` (window filled with text).
+- `table()`: ASCII tables with automatic column widths.
+- `spinner()`, `clear_rect()`, `scroll_region()` (fixed header + scrolling log).
+- Release workflow: pushing a `vX.Y.Z` tag publishes a GitHub release with `termio.py`.
+
 ## 2.0.0
 
 ### Fixed

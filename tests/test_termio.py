@@ -29,6 +29,9 @@ def render(func, *args, width=40, height=12, **kwargs):
             j = i + 2
             while not data[j].isalpha():
                 j += 1
+            if data[j] == "r":
+                i = j + 1
+                continue
             if data[j] == "H":
                 params = data[i + 2:j]
                 if params:
@@ -103,6 +106,57 @@ class TestTermio(unittest.TestCase):
     def test_window_title(self):
         self.assertEqual(render(termio.window, 0, 0, 12, 3, "Hi")[:3],
                          ["+- Hi -----+", "|          |", "+----------+"])
+
+
+    def test_clear_rect(self):
+        self.assertEqual(out(termio.clear_rect, 1, 0, 2, 2), E + "1;2H  " + E + "2;2H  ")
+
+    def test_scroll_region(self):
+        self.assertEqual(out(termio.scroll_region, 2, 9), E + "3;10r")
+        self.assertEqual(out(termio.scroll_region), E + "r")
+
+    def test_wrap(self):
+        self.assertEqual(termio.wrap("the quick brown fox", 10), ["the quick", "brown fox"])
+        self.assertEqual(termio.wrap("abcdefghij", 4), ["abcd", "efgh", "ij"])
+        self.assertEqual(termio.wrap("a\nb", 4), ["a", "b"])
+
+    def test_textbox(self):
+        self.assertEqual(render(termio.textbox, 0, 0, 10, 4, "hello big world")[:4],
+                         ["+--------+", "|hello   |", "|big     |", "+--------+"])
+
+    def test_table(self):
+        lines = render(termio.table, 0, 0, [["id", "name"], [1, "Bob"]])[:5]
+        self.assertEqual(lines, ["+----+------+", "| id | name |", "+----+------+",
+                                 "| 1  | Bob  |", "+----+------+"])
+
+    def test_spinner(self):
+        self.assertEqual(render(termio.spinner, 0, 0, 5)[0], "/")
+
+
+class TestInput(unittest.TestCase):
+    def feed(self, text):
+        old = sys.stdin
+        sys.stdin = io.StringIO(text)
+        self.addCleanup(setattr, sys, "stdin", old)
+
+    def test_getkey(self):
+        self.feed("a\x1b[A\x1b[B\r\x7f")
+        keys = [termio.getkey() for _ in range(6)]
+        self.assertEqual(keys, ["a", termio.UP, termio.DOWN, termio.ENTER,
+                                termio.BACKSPACE, None])
+
+    def test_menu_choose(self):
+        # down x3 wraps back to "a", up wraps to "c"
+        self.feed("\x1b[B\x1b[B\x1b[B\x1b[A\r")
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(termio.menu(0, 0, ["a", "b", "c"]), 2)
+
+    def test_menu_wraps_and_escape(self):
+        self.feed("\x1b[Aq")
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            self.assertIsNone(termio.menu(0, 0, ["a", "b", "c"]))
+        self.assertTrue(buf.getvalue().endswith(E + "?25h"))
 
 
 if __name__ == "__main__":
