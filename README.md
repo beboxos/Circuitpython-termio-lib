@@ -1,52 +1,123 @@
 # Circuitpython-termio-lib
-a simple REPL display lib for circuitpython
+
+A tiny text-UI library for the CircuitPython REPL: position text, draw boxes,
+windows and progress bars, with colors, on any ANSI/VT100 terminal — the board
+display (Wio Terminal, PyPortal, ...) or a serial console (Mu, Thonny, screen, minicom...).
+
 ![img](images/img1.png)
-# Fonctions
 
-## cls
-clear terminal screen and set cursor on top left : coords 0,0
+## Installation
 
-usage :
+Copy `code/lib/termio.py` into the `lib` folder of your `CIRCUITPY` drive,
+then try `code/demo.py` (rename it `code.py`).
 
-from termio import cls as cls<br/>
+```python
+import termio
+from termio import cls, printat, rect, fillrect
+```
+
+## Coordinates
+
+Coordinates are **0-based**: `(0, 0)` is the top left corner. `x` is the column,
+`y` the line. A Wio Terminal shows about 50 columns × 20 lines.
+
+If the top of your display is hidden (status bar), shift everything once:
+
+```python
+termio.set_offset(0, 1)   # every y gets +1
+```
+
+## Colors and styles
+
+Most functions accept optional `fg=`, `bg=` and `style=` arguments.
+
+| Colors | | Styles |
+|---|---|---|
+| `BLACK RED GREEN YELLOW` | `BRIGHT_BLACK` … | `BOLD DIM UNDERLINE` |
+| `BLUE MAGENTA CYAN WHITE` | … `BRIGHT_WHITE` | `BLINK REVERSE RESET` |
+
+```python
+printat(2, 1, "Warning!", fg=termio.RED, style=termio.BOLD)
+termio.color(termio.BLACK, termio.YELLOW)   # for everything printed afterwards
+print("highlighted")
+termio.reset()
+```
+
+## Functions
+
+### Screen and cursor
+
+| Function | Description |
+|---|---|
+| `cls()` | clear the screen, cursor to (0, 0) |
+| `home()` | cursor to (0, 0) without clearing |
+| `goto(x, y)` | move the cursor |
+| `clear_line(y=None)` | clear line `y` (or the current line) |
+| `clear_eol()` | clear to the end of the line |
+| `cursor(visible)` | show / hide the cursor |
+| `save_cursor()` / `restore_cursor()` | remember / go back to the cursor position |
+| `set_offset(x, y)` | shift all drawings |
+
+### Text
+
+| Function | Description |
+|---|---|
+| `printat(x, y, text, fg, bg, style)` | print `text` at `x, y` |
+| `center(y, text, width, ...)` | center `text` on line `y` of a `width` wide screen |
+
+### Drawing
+
+| Function | Description |
+|---|---|
+| `hline(x, y, length, char="-")` | horizontal line |
+| `vline(x, y, length, char="\|")` | vertical line |
+| `rect(x, y, width, height, char="")` | rectangle outline |
+| `fillrect(x, y, width, height, char="", fillchar=" ")` | filled rectangle |
+| `window(x, y, width, height, title="")` | box with a title in its top border |
+| `progress(x, y, width, value, maximum=100)` | `[#####.....]  50%` |
+
+`char` for `rect` / `fillrect` / `window` can be:
+
+- `""` — ASCII box made of `+ - |`
+- any single char, e.g. `"#"`
+- a box style: `termio.BOX_ASCII`, `BOX_SINGLE` `┌─┐`, `BOX_DOUBLE` `╔═╗`, `BOX_ROUND` `╭─╮`
+  (the unicode styles need a font with box-drawing characters; the built-in
+  display font of some boards does not have them, ASCII always works).
+
+### Example
+
+```python
+import termio
+from termio import cls, printat, rect, fillrect, window, progress
+
 cls()
+printat(5, 4, "Hello World!")
+rect(2, 2, 10, 5)                      # + - | box
+fillrect(15, 10, 20, 6, "#", "_")      # border made of #, filled with _
+window(2, 12, 30, 4, "Status", fg=termio.GREEN)
+progress(4, 14, 26, 75, fg=termio.GREEN)
+```
 
-## printat
-set cursor position and print 
+## Compatibility notes
 
-syntax : printat(x,y,value)
+- Serial terminals support every feature.
+- The on-board display terminal of CircuitPython understands cursor moves and
+  clearing; color and cursor visibility support depends on the CircuitPython
+  version — unsupported sequences are simply ignored.
 
-coords start from top left and depend on you display size. 
+## Tests
 
-example on wio terminal 50 chars wide on 20 lines
-then x is between 0 and 49 
-and lines are from 0 to 19 (on wio terminal it's strange display line start on 2 , then think to add a 2 offset on your code)
+The library runs on desktop Python too:
 
-usage :
+```sh
+python -m unittest discover tests
+```
 
-from termio import printat as printat<br/>
-printat(5,10,"Hello World!")<br/>
+## Upgrading from 1.x
 
-## rect
-draw a rectangle with char (if empty char , make rectangle with  + - and  )
+Coordinates used to be off by one (`x=0` and `x=1` were the same column).
+They are now exact, so old drawings appear one cell up/left. See [CHANGELOG.md](CHANGELOG.md).
 
-syntax : rect(x,y,width,height,char)
+## License
 
-draw a rectangle from x,y with width chars wide and height line down
-
-usage : 
-
-from termio import rect as rect<br/>
-rect(5,4,20,5,"")<br/>
-
-## fillrect
-draw a rectangle with char (if empty char , make rectangle with  + - and  )
-
-syntax : fillrect(x,y,width,height,char,fillchar)
-
-draw a filled rectangle from x,y with width chars wide and height line down and filled with a char
-
-usage : 
-
-from termio import fillrect as fillrect<br/>
-fillrect(5,4,20,5,"#","O")<br/>
+MIT — BeBoX
